@@ -1,0 +1,8 @@
+{{ repo_name }}
+{{ repo_owner }}
+
+<ul>
+{% for commit in commits %}
+  <li>{{ commit.commit.message }}</li>
+{% endfor %}
+</ul>
