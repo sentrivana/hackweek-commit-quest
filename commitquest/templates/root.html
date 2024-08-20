@@ -1,11 +1,18 @@
-Root page!
-
-{{ id }}
-
-<form method="POST">
-  <label for="repo_owner">Repo Owner</label>
-  <input type="text" name="repo_owner" id="repo_owner"></input>
-  <label for="repo_name">Repo Name</label>
-  <input type="text" name="repo_name" id="repo_name"></input>
-  <input type="submit" value="OK"></input>
-</form>
+<html>
+  <head>
+    <title>CommitQuest</title>
+    <link href="{{ url_for('static', path='/main.css') }}" rel="stylesheet">
+  </head>
+  <body>
+    <div id="main">
+      <h1>CommitQuest</h1>
+      <form method="POST">
+        <label for="repo_owner">Repo Owner</label>
+        <input type="text" name="repo_owner" id="repo_owner"></input>
+        <label for="repo_name">Repo Name</label>
+        <input type="text" name="repo_name" id="repo_name"></input>
+        <input type="submit" value="OK"></input>
+      </form>
+    </div>
+  </body>
+</html>
