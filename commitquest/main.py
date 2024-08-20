@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette import status
 
-from commitquest.consts import SECRETS
+from commitquest.consts import GITHUB_WEBHOOK_SECRET
 
 GITHUB_API_BASE_URL = "https://api.github.com/repos/{repo_owner}/{repo_name}"
 
@@ -55,7 +55,10 @@ async def webhook(request: Request):
 async def get_from_github(repo_owner: str, repo_name: str, uri: str) -> dict[str, Any]:
     async with httpx.AsyncClient() as client:
         response = await client.get(
-            GITHUB_API_BASE_URL.format(repo_owner=repo_owner, repo_name=repo_name) + uri
+            GITHUB_API_BASE_URL.format(repo_owner=repo_owner, repo_name=repo_name) + uri,
+            params={
+                "per_page": 100,
+            }
         )
 
         import json
@@ -79,7 +82,7 @@ def verify_github_signature(payload_body, signature_header):
         )
 
     hash_object = hmac.new(
-        SECRETS["GITHUB_WEBHOOK_SECRET"].encode("utf-8"),
+        GITHUB_WEBHOOK_SECRET.encode("utf-8"),
         msg=payload_body,
         digestmod=hashlib.sha256,
     )
