@@ -2,6 +2,8 @@
 
 DEBUG = True
 
+GITHUB_TOKEN = "supersecret"
+
 
 # Game
 
