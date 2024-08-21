@@ -1,16 +1,7 @@
 import asyncio
 import httpx
-import hashlib
-import hmac
-import logging
-from typing import Any
-
-from fastapi import HTTPException
-
-from commitquest.consts import DEBUG, GITHUB_WEBHOOK_SECRET
-
-
-logger = logging.getLogger(__name__)
+from datetime import datetime
+from typing import Any, Optional
 
 
 class GitHubClient:
@@ -18,53 +9,40 @@ class GitHubClient:
         self.repo_owner = repo_owner
         self.repo_name = repo_name
 
-        self.GITHUB_API_BASE_URL = "https://api.github.com/repos/{repo_owner}/{repo_name}".format(repo_owner=self.repo_owner, repo_name=self.repo_name)
+        self.GITHUB_API_BASE_URL = (
+            "https://api.github.com/repos/{repo_owner}/{repo_name}".format(
+                repo_owner=self.repo_owner, repo_name=self.repo_name
+            )
+        )
 
-    async def get(self, *uris: str) -> dict[str, dict[str, Any]]:
-        requests = []
+    async def _get_all(self, uri: str, params=Optional[dict]) -> list[Any]:
+        collected = []
 
         async with httpx.AsyncClient() as client:
-            for uri in uris:
-                requests.append(
-                    client.get(
-                        self.GITHUB_API_BASE_URL + uri,
-                        params={
-                            "per_page": 100,
-                        }
-                    )
-                )
+            url = self.GITHUB_API_BASE_URL + uri
 
-            responses = await asyncio.gather(*requests)
+            while True:
+                response = await client.get(url, params=params)
+                collected += response.json()
 
-        responses = [response.json() for response in responses]
+                await asyncio.sleep(0.1)
 
-        if DEBUG:
-            for response in responses:
-                logger.warning(response)
+                if response.links and "next" in response.links:
+                    url = response.links["next"]["url"]
+                else:
+                    break
 
-        return dict(zip(uris, responses))
+        return collected
 
-    @classmethod
-    def verify_signature(payload_body, signature_header):
-        """Verify that the payload was sent from GitHub by validating SHA256.
+    async def get_commits(self, since: Optional[datetime]):
+        params = {
+            "per_page": 100,
+        }
+        if since is not None:
+            params["since"] = since.isoformat()
 
-        Raise 403 if not authorized.
+        # XXX remove, just for testing
+        params["since"] = "2024-08-01T00:00:00Z"
 
-        Args:
-            payload_body: original request body to verify (request.body())
-            signature_header: header received from GitHub (x-hub-signature-256)
-        """
-        if not signature_header:
-            raise HTTPException(
-                status_code=403, detail="x-hub-signature-256 header is missing!"
-            )
-
-        hash_object = hmac.new(
-            GITHUB_WEBHOOK_SECRET.encode("utf-8"),
-            msg=payload_body,
-            digestmod=hashlib.sha256,
-        )
-        expected_signature = "sha256=" + hash_object.hexdigest()
-
-        if not hmac.compare_digest(expected_signature, signature_header):
-            raise HTTPException(status_code=403, detail="Request signatures didn't match!")
+        commits = await self._get_all("/commits", params=params)
+        return commits

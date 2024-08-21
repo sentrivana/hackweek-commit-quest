@@ -1,17 +1,17 @@
+<!DOCTYPE html>
 <html>
   <head>
     <title>CommitQuest</title>
-    <link href="{{ url_for('static', path='/main.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', path='main.css') }}" rel="stylesheet">
+    <script type="text/javascript" src="{{ url_for('static', path='game.js') }}"></script>
   </head>
   <body>
     <div id="main">
       <h1>CommitQuest</h1>
-      {{ repo_name }} / {{ repo_owner }}
-      <ul>
-        {% for commit in commits %}
-          <li>{{ commit.commit.message }}</li>
-        {% endfor %}
-      </ul>
+      <h2><span id="repo-owner">{{ repo_owner }}</span> / <span id="repo-name">{{ repo_name }}</span></h2>
+      <canvas id="game" width="800" height="600">
+
+      </canvas>
     </div>
   </body>
 </html>
