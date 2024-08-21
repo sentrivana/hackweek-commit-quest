@@ -9,7 +9,12 @@ GITHUB_TOKEN = "supersecret"
 
 ENVIRONMENTS = ["grasslands"]
 
-SPRITES = [
+HERO_SPRITES = [
+    "Orc-Idle",
+    "Soldier-Idle",
+]
+
+BOSS_SPRITES = [
     "Orc-Idle",
     "Soldier-Idle",
 ]

@@ -12,16 +12,16 @@ class GitHubClient:
         self.repo_owner = repo_owner
         self.repo_name = repo_name
 
-        self.headers = {
-            "Authorization": f"Bearer {GITHUB_TOKEN}"
-        }
+        self.headers = {"Authorization": f"Bearer {GITHUB_TOKEN}"}
         self.GITHUB_API_BASE_URL = (
             "https://api.github.com/repos/{repo_owner}/{repo_name}".format(
                 repo_owner=self.repo_owner, repo_name=self.repo_name
             )
         )
 
-    async def _get_all(self, uri: str, params: Optional[dict] = None, headers: Optional[dict] = None) -> list[Any]:
+    async def _get_all(
+        self, uri: str, params: Optional[dict] = None, headers: Optional[dict] = None
+    ) -> list[Any]:
         params = params or {}
         headers = headers or {}
 
@@ -31,9 +31,13 @@ class GitHubClient:
             url = self.GITHUB_API_BASE_URL + uri
 
             while True:
-                response = await client.get(url, params=params, headers=self.headers | headers)
+                response = await client.get(
+                    url, params=params, headers=self.headers | headers
+                )
                 if response.status_code != 200:
-                    raise RuntimeError(f"Failed to fetch data from GitHub API: {response.status_code} {response.json()}")
+                    raise RuntimeError(
+                        f"Failed to fetch data from GitHub API: {response.status_code} {response.json()}"
+                    )
 
                 collected += response.json()
 
@@ -43,7 +47,6 @@ class GitHubClient:
                     break
 
                 await asyncio.sleep(0.1)
-
 
         return collected
 

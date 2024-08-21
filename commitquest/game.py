@@ -1,14 +1,21 @@
 import random
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 from sqlalchemy.orm import joinedload
 from sqlmodel import Session, select
 
 from commitquest.client import GitHubClient
-from commitquest.consts import BOSS_ATTRIBUTES, BOSS_NAMES, ENVIRONMENTS, SPRITES
+from commitquest.consts import (
+    BOSS_ATTRIBUTES,
+    BOSS_NAMES,
+    BOSS_SPRITES,
+    ENVIRONMENTS,
+    HERO_SPRITES,
+)
 from commitquest.db import engine, init_db
 from commitquest.models import Boss, Hero, Level, Repo
-from commitquest.utils import debug
+from commitquest.utils import calculate_author_stats, debug
 
 
 class Game:
@@ -24,7 +31,6 @@ class Game:
         self.load()
 
     def load(self):
-        """Set the game up from the DB, creating stuff if not initialized yet."""
         debug("Loading game state from DB...", repo=self.repo_name)
 
         init_db()
@@ -45,21 +51,16 @@ class Game:
         if self.repo:
             debug("Game already exists", repo=self.repo_name)
             if self.repo.levels:
-                self.level = self.repo.levels[0]  # XXX ordering
+                # XXX do this like a normal person
+                self.level = sorted(
+                    self.repo.levels, key=lambda l: l.seq, reverse=True
+                )[0]
                 self.boss = self.level.boss[0]
                 self.heroes = self.level.heroes
-            else:
-                self.start_level()
 
         else:
             debug("Game doesn't exist. Starting a new game", repo=self.repo_name)
             self.create_repo()
-            self.start_level()
-
-        debug(
-            f"Level: {self.level} | Boss: {self.boss} | Heroes: {self.heroes}",
-            repo=self.repo_name,
-        )
 
     def create_repo(self) -> None:
         self.repo = Repo(
@@ -74,6 +75,8 @@ class Game:
             session.refresh(self.repo)
 
     def start_level(self):
+        debug("Starting a new level", repo=self.repo_name)
+
         created = []
 
         seq = 0 if self.level is None else self.level.seq + 1
@@ -83,15 +86,20 @@ class Game:
             repo=self.repo,
             environment=random.choice(ENVIRONMENTS),
         )
-        # XXX increase diff over time
         created.append(self.level)
+
+        boss_health = max(
+            self.repo.difficulty // 4 * seq
+            + random.randint(0, self.repo.difficulty // 4),
+            1,
+        )
 
         self.boss = Boss(
             level=self.level,
             name=f"{random.choice(BOSS_NAMES)} {random.choice(BOSS_ATTRIBUTES)}",
-            sprite=random.choice(SPRITES),
-            max_health=300,
-            health=300,
+            sprite=random.choice(BOSS_SPRITES),
+            max_health=boss_health,
+            health=boss_health,
         )
         created.append(self.boss)
 
@@ -110,17 +118,33 @@ class Game:
         pass
 
     def calculate_damage(self):
-        return 100
+        # XXX
+        return 2 if len(self.commits) > 0 else 0
 
     async def update(self):
         debug("Fetching repo state...", repo=self.repo_name)
+        now = datetime.now(timezone.utc)
 
-        if self.repo.difficulty is None:
-            since = datetime.now(timezone.utc) - timedelta(weeks=4)
+        if (
+            self.repo.difficulty
+            is None
+            # XXX fix f timezones
+            # or self.repo.difficulty_updated < now - timedelta(weeks=1)
+        ):
+            first_time = True
+            since = now - timedelta(weeks=4)
+            self.commits = []
         else:
+            first_time = False
             since = self.repo.updated
 
-        self.commits = await self.github.get_commits(since=since)
+        commits = await self.github.get_commits(since=since)
+
+        difficulty = None
+        if first_time:
+            difficulty = len(commits)
+        else:
+            self.commits = commits
 
         debug(
             f"Fetched {len(self.commits)} new commits",
@@ -128,11 +152,17 @@ class Game:
         )
 
         if self.repo.difficulty is None:
-            self.repo.difficulty = max(len(self.commits), 1)
+            self.repo.difficulty = max(difficulty, 1)
+            self.repo.difficulty_updated = now
             debug(
                 f"Set difficulty to {self.repo.difficulty}",
                 repo=self.repo_name,
             )
+
+        if self.level is None:
+            self.start_level()
+
+        self.update_heroes()
 
         damage = self.calculate_damage()
         self.boss.health = max(self.boss.health - damage, 0)
@@ -152,7 +182,36 @@ class Game:
             session.add(self.repo)
             session.commit()
 
-    def get_state(self):
+        debug(
+            f"Level: {self.level} | Boss: {self.boss} | Heroes: {self.heroes}",
+            repo=self.repo_name,
+        )
+
+    def update_heroes(self) -> None:
+        debug("Updating heroes", repo=self.repo_name)
+
+        hero_names = {hero.name for hero in self.heroes}
+
+        authors = calculate_author_stats(self.commits)
+        for author, contributions in authors.items():
+            if author not in hero_names:
+                hero = Hero(
+                    name=author,
+                    level=self.level,
+                    power=contributions,
+                    sprite=random.choice(HERO_SPRITES),
+                )
+                debug(f"Adding hero {hero}", repo=self.repo_name)
+
+        with Session(engine) as session:
+            session.expire_on_commit = False
+            for hero in self.heroes:
+                session.add(hero)
+            session.commit()
+            for hero in self.heroes:
+                session.refresh(hero)
+
+    def get_state(self) -> dict[str, Any]:
         return {
             "level": self.level,
             "boss": self.boss,

@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID, uuid4
 
-from sqlalchemy import text
+from sqlalchemy import Column, DateTime, UniqueConstraint, text
 from sqlmodel import Field, Relationship, SQLModel
 
 
@@ -23,6 +23,10 @@ class Repo(TimestampModel, UUIDModel, table=True):
     owner: str
     name: str
     difficulty: Optional[int]
+    difficulty_updated: Optional[datetime] = Field(
+        sa_column=Column(DateTime(timezone=True)),
+        default=None,
+    )
 
     levels: list["Level"] = Relationship(back_populates="repo")
 
@@ -32,7 +36,7 @@ class Repo(TimestampModel, UUIDModel, table=True):
 
 class Level(TimestampModel, UUIDModel, table=True):
     seq: int
-    repo_id: UUID = Field(default=None, foreign_key="repo.id")
+    repo_id: UUID = Field(foreign_key="repo.id")
     environment: str
 
     repo: Repo = Relationship(back_populates="levels")
@@ -44,7 +48,10 @@ class Level(TimestampModel, UUIDModel, table=True):
 
 
 class Hero(TimestampModel, UUIDModel, table=True):
-    level_id: UUID = Field(default=None, foreign_key="level.id")
+    __table_args__ = (UniqueConstraint("level_id", "name"),)
+
+    level_id: UUID = Field(foreign_key="level.id")
+    # XXX mark name, level_id as unique
     name: str
     power: int
     sprite: str
@@ -54,9 +61,12 @@ class Hero(TimestampModel, UUIDModel, table=True):
     def __str__(self):
         return f"{self.name} ({self.power})"
 
+    def __repr__(self):
+        return self.__str__()
+
 
 class Boss(TimestampModel, UUIDModel, table=True):
-    level_id: UUID = Field(default=None, foreign_key="level.id")
+    level_id: UUID = Field(foreign_key="level.id")
     name: str
     sprite: str
     max_health: int

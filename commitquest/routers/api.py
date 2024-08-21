@@ -8,6 +8,7 @@ router = APIRouter(prefix="/api")
 
 @router.get("/{repo_owner}/{repo_name}/state")
 async def state(request: Request, repo_owner: str, repo_name: str):
+    return {}
     game = Game(repo_owner=repo_owner, repo_name=repo_name)
     await game.update()
 
