@@ -1,5 +1,4 @@
 from collections import defaultdict
-from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 from commitquest.consts import DEBUG

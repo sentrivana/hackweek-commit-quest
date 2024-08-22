@@ -29,9 +29,6 @@ async def go_to_repo(
 
 @router.get("/game/{repo_owner}/{repo_name}")
 async def game(request: Request, repo_owner: str, repo_name: str):
-    game = Game(repo_owner=repo_owner, repo_name=repo_name)
-    await game.update()
-
     context = {
         "repo_owner": repo_owner,
         "repo_name": repo_name,

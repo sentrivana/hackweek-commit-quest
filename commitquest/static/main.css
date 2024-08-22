@@ -5,6 +5,30 @@ body {
     justify-content: center;
 }
 
-div#main {
+h1 {
+    font-family: "Jersey 10", sans-serif;
+    font-size: 5em;
+    margin: 0;
+}
 
+h2 {
+    font-family: "Pixelify Sans", sans-serif;
+    font-optical-sizing: auto;
+    margin: 0;
+}
+
+div#main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+canvas {
+    background-color: white;
+}
+
+div#footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }

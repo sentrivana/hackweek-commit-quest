@@ -3,15 +3,22 @@
   <head>
     <title>CommitQuest</title>
     <link href="{{ url_for('static', path='main.css') }}" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jersey+10&family=Pixelify+Sans:wght@400..700&display=swap" rel="stylesheet">
     <script type="text/javascript" src="{{ url_for('static', path='game.js') }}"></script>
   </head>
   <body>
     <div id="main">
       <h1>CommitQuest</h1>
       <h2><span id="repo-owner">{{ repo_owner }}</span> / <span id="repo-name">{{ repo_name }}</span></h2>
-      <canvas id="game" width="800" height="600">
-
-      </canvas>
+      <canvas id="game" width="2000" height="1000"></canvas>
+      <div id="footer">
+        <p>
+          Character art by <a href="https://zerie.itch.io/tiny-rpg-character-asset-pack">Zerie</a><br>
+          Background art by <a href="https://free-game-assets.itch.io/free-summer-pixel-art-backgrounds">Free Game Asset</a>
+        </p>
+      </div>
     </div>
   </body>
 </html>

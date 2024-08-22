@@ -9,12 +9,10 @@ from commitquest.client import GitHubClient
 from commitquest.consts import (
     BOSS_ATTRIBUTES,
     BOSS_NAMES,
-    BOSS_SPRITES,
-    ENVIRONMENTS,
-    HERO_SPRITES,
 )
 from commitquest.db import engine, init_db
 from commitquest.models import Boss, Hero, Level, Repo
+from commitquest.sprite import BOSS_SPRITES, HERO_SPRITES, LEVEL_BGS
 from commitquest.utils import calculate_author_stats, debug
 
 
@@ -84,7 +82,8 @@ class Game:
         self.level = Level(
             seq=seq,
             repo=self.repo,
-            environment=random.choice(ENVIRONMENTS),
+            environment=random.choice(LEVEL_BGS),
+            bg=random.choice(LEVEL_BGS),
         )
         created.append(self.level)
 
@@ -96,7 +95,8 @@ class Game:
 
         self.boss = Boss(
             level=self.level,
-            name=f"{random.choice(BOSS_NAMES)} {random.choice(BOSS_ATTRIBUTES)}",
+            name=random.choice(BOSS_NAMES),
+            attribute=random.choice(BOSS_ATTRIBUTES),
             sprite=random.choice(BOSS_SPRITES),
             max_health=boss_health,
             health=boss_health,
@@ -213,7 +213,8 @@ class Game:
 
     def get_state(self) -> dict[str, Any]:
         return {
-            "level": self.level,
-            "boss": self.boss,
-            "heroes": self.heroes,
+            "screen": "level",
+            "level": self.level.json(),
+            "boss": self.boss.json(),
+            "heroes": [hero.json() for hero in self.heroes],
         }

@@ -7,18 +7,6 @@ GITHUB_TOKEN = "supersecret"
 
 # Game
 
-ENVIRONMENTS = ["grasslands"]
-
-HERO_SPRITES = [
-    "Orc-Idle",
-    "Soldier-Idle",
-]
-
-BOSS_SPRITES = [
-    "Orc-Idle",
-    "Soldier-Idle",
-]
-
 BOSS_NAMES = [
     "Bork",
     "Bonk",
@@ -27,5 +15,10 @@ BOSS_NAMES = [
 ]
 
 BOSS_ATTRIBUTES = [
-    "of the Valley",
+    "of the Red Valley",
+    "van der Baddie",
+    "the Crumbling",
+    "Goddess of Issues",
+    "MSc.",
+    "the Distorted",
 ]

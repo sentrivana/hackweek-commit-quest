@@ -1,139 +1,280 @@
 "use strict";
 let canvas;
-let context;
+let ctx;
+
+const spriteRows = 1;
+const frameWidth = 100;
+const frameHeight = 100;
+const scaleFactor = 5;
+const border = 25;
 
 let secondsPassed = 0;
-let oldTimestamp = 0;
-const scaleFactor = 3.0;
-
-let fetchedState;
-let characters;
-let boss;
-let level;
+let lastUpdate = 0;
 
 let repoOwner;
 let repoName;
 
-const sprites = ['Orc-Idle', 'Soldier-Idle'];
+// Game state as fetched from BE
+const stateUpdateInterval = 10000;
+let state;
+
+// FE game state / consts
+const drawUpdateInterval = 250;
+let heroes;
+let boss;
+let level;
 
 
 window.onload = init;
 
-function init() {
+async function init() {
     canvas = document.getElementById('game');
-    context = canvas.getContext('2d');
-    context.imageSmoothingEnabled = false;
+    ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
 
     repoOwner = document.getElementById('repo-owner').innerText;
     repoName = document.getElementById('repo-name').innerText;
 
-    initGameState();
+    await fetchGameState();
 
-    // window.requestAnimationFrame(gameLoop);
+    setTimeout(gameLoop, drawUpdateInterval);
 }
 
 async function fetchGameState() {
-    // Fetch game state
     console.log(`Fetching game state for ${repoOwner}/${repoName}`);
-    const res = await fetch(`/api/${repoOwner}/${repoName}/state`)
-    fetchedState = await res.json();
-    console.log(fetchedState);
+    const res = await fetch(`/api/${repoOwner}/${repoName}/state`);
+    state = await res.json();
+    console.log(state);
+
+    setTimeout(fetchGameState, stateUpdateInterval);
 }
 
-function initGameState() {
-    fetchGameState();
 
-    // Init characters
-    let id = 0;
-    characters = {};
-
-    for (const character in fetchedState) {
-        const spriteName = sprites[Math.floor(Math.random() * sprites.length)];
-        characters[character] = {
-            "id": id,
-            "name": character,
-            "commits": fetchedState[character],
-            "sprite": {
-                "image": loadSprite(spriteName),
-                "id": spriteName,
-                "frame": 0,
-                "maxFrame": 6,
-            },
-        };
-        id += 1;
-    }
-
-    console.log(characters);
-}
-
-function gameLoop(timestamp) {
-    secondsPassed = Math.min(timestamp - oldTimestamp / 1000, 0.1);
-    oldTimestamp = timestamp;
-
+function gameLoop() {
     update();
     draw();
 
-    window.requestAnimationFrame(gameLoop);
+    setTimeout(gameLoop, drawUpdateInterval);
 }
 
-function update(secondsPassed) {
-    for (const character in characters) {
-        let charState = characters[character];
-        charState["sprite"]["frame"] = (charState["sprite"]["frame"] + 1) % charState["sprite"]["maxFrame"];
+
+function update() {
+    const newLevel = updateLevel();
+    updateHeroes(newLevel);
+    updateBoss(newLevel);
+}
+
+
+function updateHeroes(reinit) {
+    if (reinit || typeof heroes === "undefined") {
+        heroes = {};
+    }
+
+    let existing = [];
+    for (const hero in heroes) {
+        existing.push(hero);
+    }
+
+    for (const hero in state.heroes) {
+        if (!existing.includes(hero)) {
+            const image = loadSprite("heroes", state.heroes[hero].sprite);
+            image.onload = function() {
+                const maxFrame = image.width / frameWidth;
+                heroes[hero] = {
+                    image: image,
+                    frame: Math.floor(Math.random() * maxFrame),
+                    maxFrame: maxFrame,
+                };
+            };
+        }
+    }
+
+    let i = 0;
+    for (const hero in heroes) {
+        heroes[hero].frame = (heroes[hero].frame + 1) % heroes[hero].maxFrame;
+        heroes[hero].pos = i;
+        i += 1;
     }
 }
 
+
+function updateLevel() {
+    if (typeof level === 'undefined') {
+        level = state.level;
+        level.image = loadSprite('bgs', level.environment);
+    };
+
+    if (state.level.seq != level.seq) {
+        // new level
+        console.log('New level!');
+        level = state.level;
+        level.image = loadSprite('bgs', level.environment);
+        return true;
+    };
+
+    return false;
+}
+
+
+function updateBoss(reinit) {
+    if (reinit || typeof boss === "undefined") {
+        const image = loadSprite("bosses", state.boss.sprite);
+        image.onload = function() {
+            boss.maxFrame = image.width / frameWidth;
+            boss.frame = Math.floor(Math.random() * boss.maxFrame);
+        };
+        boss = state.boss;
+        boss.image = image;
+    };
+
+    boss.frame = (boss.frame + 1) % boss.maxFrame;
+}
+
 function draw() {
-    context.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     drawEnvironment();
     drawBoss();
 
-    for (const character in characters) {
-        drawCharacter(character);
+    for (const hero in heroes) {
+        drawHero(hero);
     }
 }
 
-function loadSprite(url) {
+
+function loadSprite(type, filename) {
     let image = new Image();
-    image.onload = function() {
-        context.drawImage(image, 10, 10);
-    };
-    image.src = `/static/images/${url}.png`;
+    image.src = `/static/images/${type}/${filename}`;
+    console.log(`Loaded sprite ${image.src}`);
     return image;
 }
 
-function drawCharacter(character) {
-    const charState = characters[character];
 
-    let numColumns = 6;
-    let numRows = 1;
+function drawHero(hero) {
+    const heroInfo = heroes[hero];
 
-    let frameWidth = charState["sprite"]["image"].width / numColumns;
-    let frameHeight = charState["sprite"]["image"].height / numRows;
+    const destX = (heroInfo.pos % 8) * frameWidth / 4 * scaleFactor;
+    const row = Math.floor(heroInfo.pos / 8);
+    const destY = canvas.height - 1.25 * frameHeight * scaleFactor + row * frameHeight / 3 * scaleFactor;
 
-    let column = charState["sprite"]["frame"] % numColumns;
-    let row = Math.floor(charState["sprite"]["frame"] / numColumns);
-
-    context.drawImage(
+    ctx.drawImage(
         // source
-        charState["sprite"]["image"],
-        column * frameWidth,
-        row * frameHeight,
+        heroInfo.image,
+        heroInfo.frame * frameWidth,
+        0,
         frameWidth,
         frameHeight,
         // destination
-        charState["id"] * 50,
-        100,
+        destX,
+        destY,
         frameWidth * scaleFactor,
-        frameHeight * scaleFactor
+        frameHeight * scaleFactor,
+    );
+
+    const name = state.heroes[hero].name;
+    const effectiveSpriteDim = frameWidth / 3 * scaleFactor;
+    const textWidth = ctx.measureText(name).width;
+
+    ctx.fillStyle = "white";
+    ctx.font = "20px serif";
+    ctx.fillText(
+        name,
+        destX + effectiveSpriteDim + Math.max((effectiveSpriteDim - textWidth) / 2, 0),
+        destY + frameHeight / 1.55 * scaleFactor,
     );
 }
 
-function drawBoss() {
 
+function drawBoss() {
+    const padding = 100;
+    const x = canvas.width - 500 - padding;
+    const bossScaleFactor = scaleFactor * 3;
+
+    // Sprite
+
+    ctx.scale(-1, 1);
+    ctx.drawImage(
+        // source
+        boss.image,
+        boss.frame * frameWidth,
+        0,
+        frameWidth,
+        frameHeight,
+        // destination
+        -1 * (x + (canvas.width - x - padding - frameWidth * bossScaleFactor) / 2),
+        -frameHeight * bossScaleFactor / 7,
+        -1 * frameWidth * bossScaleFactor,
+        frameHeight * bossScaleFactor,
+    );
+    ctx.scale(-1, 1);
+
+    // Name
+
+    ctx.fillStyle = "white";
+    ctx.font = "50px serif";
+
+    const name = state.boss.name;
+    const nameTextWidth = ctx.measureText(name).width;
+
+    ctx.fillText(
+        name,
+        x + (canvas.width - x - padding - nameTextWidth) / 2,
+        canvas.height - 250,
+    );
+
+    ctx.fillStyle = "white";
+    ctx.font = "30px serif";
+
+    const attribute = state.boss.attribute;
+    const attributeTextWidth = ctx.measureText(attribute).width;
+
+    ctx.fillText(
+        attribute,
+        x + (canvas.width - x - padding - attributeTextWidth) / 2,
+        canvas.height - 250 + 40,
+    );
+
+    // Health bar
+
+    const healthPercent = state.boss.health / state.boss.max_health;
+    const healthBarHeight = 50;
+    const healthBarWidth = Math.floor(500 * healthPercent);
+    const healthBarY = canvas.height - healthBarHeight - padding;
+    const healthBarBorder = 3;
+
+    ctx.fillStyle = "black";
+    ctx.fillRect(
+        x - healthBarBorder * 2,
+        healthBarY - healthBarBorder * 2,
+        healthBarWidth + 4 * healthBarBorder,
+        healthBarHeight + 4 * healthBarBorder,
+    );
+    ctx.fillStyle = "white";
+    ctx.fillRect(
+        x - healthBarBorder,
+        healthBarY - healthBarBorder,
+        healthBarWidth + 2 * healthBarBorder,
+        healthBarHeight + 2 * healthBarBorder,
+    );
+
+    if (healthPercent > 0.63) {
+        ctx.fillStyle = "green";
+    } else if (healthPercent > 0.37) {
+        ctx.fillStyle = "gold";
+    } else if (healthPercent > 0.13) {
+        ctx.fillStyle = "orange";
+    } else {
+        ctx.fillStyle = "red";
+    }
+    ctx.fillRect(
+        x,
+        healthBarY,
+        healthBarWidth,
+        healthBarHeight,
+    );
 }
 
-function drawEnvironment() {
 
+function drawEnvironment() {
+    ctx.drawImage(level.image, 0, 0, canvas.width, canvas.height);
 }

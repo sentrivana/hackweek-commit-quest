@@ -46,6 +46,12 @@ class Level(TimestampModel, UUIDModel, table=True):
     def __str__(self):
         return f"Level {self.seq} ({self.environment})"
 
+    def json(self):
+        return {
+            "seq": self.seq,
+            "environment": self.environment,
+        }
+
 
 class Hero(TimestampModel, UUIDModel, table=True):
     __table_args__ = (UniqueConstraint("level_id", "name"),)
@@ -64,10 +70,18 @@ class Hero(TimestampModel, UUIDModel, table=True):
     def __repr__(self):
         return self.__str__()
 
+    def json(self):
+        return {
+            "name": self.name,
+            "power": self.power,
+            "sprite": self.sprite,
+        }
+
 
 class Boss(TimestampModel, UUIDModel, table=True):
     level_id: UUID = Field(foreign_key="level.id")
     name: str
+    attribute: str
     sprite: str
     max_health: int
     health: int
@@ -80,3 +94,12 @@ class Boss(TimestampModel, UUIDModel, table=True):
     @property
     def finished(self):
         return self.health <= 0
+
+    def json(self):
+        return {
+            "name": self.name,
+            "attribute": self.attribute,
+            "sprite": self.sprite,
+            "max_health": self.max_health,
+            "health": self.health,
+        }
