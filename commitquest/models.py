@@ -12,11 +12,7 @@ class UUIDModel(SQLModel):
 
 class TimestampModel(SQLModel):
     created: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated: datetime = Field(
-        sa_column_kwargs={
-            "server_default": text("CURRENT_TIMESTAMP"),
-        }
-    )
+    updated: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class Repo(TimestampModel, UUIDModel, table=True):

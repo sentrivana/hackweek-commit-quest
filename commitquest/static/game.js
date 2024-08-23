@@ -159,8 +159,8 @@ function drawHeroes() {
         ctx.font = "20px serif";
         ctx.fillText(
             text,
-            100,
-            canvas.height - 100,
+            200,
+            canvas.height - 200,
         );
     }
 }

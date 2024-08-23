@@ -88,8 +88,8 @@ class Game:
         created.append(self.level)
 
         boss_health = max(
-            self.repo.difficulty // 4 * seq
-            + random.randint(0, self.repo.difficulty // 4),
+            self.repo.difficulty // 2 * seq
+            + random.randint(0, self.repo.difficulty // 2),
             1,
         )
 
@@ -175,6 +175,8 @@ class Game:
             self.end_level()
             self.start_level()
 
+        self.repo.updated = now
+
         with Session(engine) as session:
             session.expire_on_commit = False
             session.add(self.boss)
@@ -192,17 +194,17 @@ class Game:
         hero_names = {hero.name for hero in self.heroes}
 
         authors = calculate_author_stats(self.commits)
-        for author, contributions in authors.items():
+        for author in authors:
             if author not in hero_names:
                 hero = Hero(
                     name=author,
                     level=self.level,
                     sprite=random.choice(HERO_SPRITES),
                 )
-                debug(f"Adding hero {hero}", repo=self.repo_name)
+                debug(f"Adding hero {hero.name}", repo=self.repo_name)
 
         for hero in self.heroes:
-            hero.power = contributions
+            hero.power = authors[hero.name]
 
         with Session(engine) as session:
             session.expire_on_commit = False

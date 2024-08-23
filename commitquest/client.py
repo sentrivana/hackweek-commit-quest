@@ -55,10 +55,7 @@ class GitHubClient:
             "per_page": 100,
         }
         if since is not None:
-            params["since"] = since.isoformat()
-
-        # XXX remove, just for testing
-        params["since"] = "2024-08-01T00:00:00Z"
+            params["since"] = since.isoformat() + 'Z'   # wut
 
         commits = await self._get_all("/commits", params=params)
         return commits
