@@ -20,5 +20,5 @@ BOSS_ATTRIBUTES = [
     "the Crumbling",
     "Goddess of Issues",
     "MSc.",
-    "the Distorted",
+    "the One with Issues",
 ]

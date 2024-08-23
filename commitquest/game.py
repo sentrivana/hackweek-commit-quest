@@ -57,7 +57,7 @@ class Game:
                 self.heroes = self.level.heroes
 
         else:
-            debug("Game doesn't exist. Starting a new game", repo=self.repo_name)
+            debug("Game doesn't exist for this repo. Starting a new game", repo=self.repo_name)
             self.create_repo()
 
     def create_repo(self) -> None:
@@ -118,8 +118,7 @@ class Game:
         pass
 
     def calculate_damage(self):
-        # XXX
-        return 2 if len(self.commits) > 0 else 0
+        return len(self.commits)
 
     async def update(self):
         debug("Fetching repo state...", repo=self.repo_name)
@@ -198,10 +197,12 @@ class Game:
                 hero = Hero(
                     name=author,
                     level=self.level,
-                    power=contributions,
                     sprite=random.choice(HERO_SPRITES),
                 )
                 debug(f"Adding hero {hero}", repo=self.repo_name)
+
+        for hero in self.heroes:
+            hero.power = contributions
 
         with Session(engine) as session:
             session.expire_on_commit = False

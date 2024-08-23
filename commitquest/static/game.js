@@ -40,6 +40,7 @@ async function init() {
     setTimeout(gameLoop, drawUpdateInterval);
 }
 
+
 async function fetchGameState() {
     console.log(`Fetching game state for ${repoOwner}/${repoName}`);
     const res = await fetch(`/api/${repoOwner}/${repoName}/state`);
@@ -135,10 +136,7 @@ function draw() {
 
     drawEnvironment();
     drawBoss();
-
-    for (const hero in heroes) {
-        drawHero(hero);
-    }
+    drawHeroes();
 }
 
 
@@ -149,6 +147,23 @@ function loadSprite(type, filename) {
     return image;
 }
 
+
+function drawHeroes() {
+    for (const hero in heroes) {
+        drawHero(hero);
+    }
+
+    if (Object.keys(heroes).length === 0) {
+        let text = "<Go make some commits to fight the boss!>";
+        ctx.fillStyle = "white";
+        ctx.font = "20px serif";
+        ctx.fillText(
+            text,
+            100,
+            canvas.height - 100,
+        );
+    }
+}
 
 function drawHero(hero) {
     const heroInfo = heroes[hero];
